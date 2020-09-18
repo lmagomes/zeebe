@@ -55,7 +55,6 @@ public class StreamProcessor extends Actor implements HealthMonitorable {
   private long snapshotPosition = -1L;
   private ProcessingStateMachine processingStateMachine;
 
-  @SuppressWarnings("squid:S3077")
   private volatile Phase phase = Phase.REPROCESSING;
 
   private CompletableActorFuture<Void> openFuture;
@@ -126,9 +125,10 @@ public class StreamProcessor extends Actor implements HealthMonitorable {
               LOG.error("Unexpected error on recovery happens.", throwable);
               onFailure(throwable);
             } else {
-              onRecovered(lastReprocessedPosition);
               new StreamProcessorMetrics(partitionId)
                   .recoveryTime(System.currentTimeMillis() - startTime);
+
+              onRecovered(lastReprocessedPosition);
             }
           });
     } catch (final RuntimeException e) {
