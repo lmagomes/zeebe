@@ -28,7 +28,7 @@ public final class ClientExceptionHandlingTest {
   public final GrpcClientRule clientRule =
       new GrpcClientRule(
           brokerRule,
-          zeebeClientBuilder -> zeebeClientBuilder.brokerContactPoint("localhost:1234"));
+          zeebeClientBuilder -> zeebeClientBuilder.gatewayAddress("localhost:1234"));
 
   @Rule public RuleChain ruleChain = RuleChain.outerRule(brokerRule).around(clientRule);
 

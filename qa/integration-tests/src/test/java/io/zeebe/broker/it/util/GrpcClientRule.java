@@ -51,7 +51,7 @@ public final class GrpcClientRule extends ExternalResource {
     this(
         config -> {
           config
-              .brokerContactPoint(
+              .gatewayAddress(
                   io.zeebe.util.SocketUtil.toHostAndPortString(brokerRule.getGatewayAddress()))
               .usePlaintext();
           configurator.accept(config);
@@ -62,7 +62,7 @@ public final class GrpcClientRule extends ExternalResource {
     this(
         config ->
             config
-                .brokerContactPoint(
+                .gatewayAddress(
                     SocketUtil.toHostAndPortString(clusteringRule.getGatewayAddress()))
                 .usePlaintext());
   }
