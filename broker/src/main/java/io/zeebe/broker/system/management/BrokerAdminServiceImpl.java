@@ -7,6 +7,7 @@
  */
 package io.zeebe.broker.system.management;
 
+import io.zeebe.broker.Loggers;
 import io.zeebe.broker.system.partitions.ZeebePartition;
 import io.zeebe.engine.processing.streamprocessor.StreamProcessor;
 import io.zeebe.snapshots.broker.impl.FileBasedSnapshotMetadata;
@@ -20,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A service that exposes interface to control some of the core functionalities of the broker such
@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BrokerAdminServiceImpl extends Actor implements BrokerAdminService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(BrokerAdminService.class);
+  private static final Logger LOG = Loggers.SYSTEM_LOGGER;
   final List<ZeebePartition> partitions;
 
   public BrokerAdminServiceImpl(final List<ZeebePartition> partitions) {
@@ -153,18 +153,16 @@ public class BrokerAdminServiceImpl extends Actor implements BrokerAdminService 
 
   private List<ActorFuture<Void>> pauseStreamProcessingOnAllPartitions() {
     LOG.info("Pausing StreamProcessor on all partitions.");
-    return partitions.stream()
-        .map(partition -> partition.pauseProcessing())
-        .collect(Collectors.toList());
+    return partitions.stream().map(ZeebePartition::pauseProcessing).collect(Collectors.toList());
   }
 
   private void unpauseStreamProcessingOnAllPartitions() {
     LOG.info("Resuming paused StreamProcessor on all partitions.");
-    partitions.forEach(partition -> partition.resumeProcessing());
+    partitions.forEach(ZeebePartition::resumeProcessing);
   }
 
   private void takeSnapshotOnAllPartitions(final List<ZeebePartition> partitions) {
     LOG.info("Triggering Snapshots on all partitions.");
-    partitions.forEach(partition -> partition.triggerSnapshot());
+    partitions.forEach(ZeebePartition::triggerSnapshot);
   }
 }
