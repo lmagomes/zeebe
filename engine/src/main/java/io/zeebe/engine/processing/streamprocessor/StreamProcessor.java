@@ -370,7 +370,7 @@ public class StreamProcessor extends Actor implements HealthMonitorable {
                 }));
   }
 
-  protected enum Phase {
+  public enum Phase {
     REPROCESSING,
     PROCESSING,
     FAILED,
