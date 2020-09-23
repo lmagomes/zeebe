@@ -146,14 +146,16 @@ public class BrokerAdminServiceImpl extends Actor implements BrokerAdminService 
   private void prepareAllPartitionsForSafeUpgrade() {
     LOG.info("Preparing for safe upgrade.");
 
-    pauseStreamProcessingOnAllPartitions();
+    final var pauseCompleted = pauseStreamProcessingOnAllPartitions();
 
-    takeSnapshotOnAllPartitions(partitions);
+    actor.runOnCompletion(pauseCompleted, t -> takeSnapshotOnAllPartitions(partitions));
   }
 
-  private void pauseStreamProcessingOnAllPartitions() {
+  private List<ActorFuture<Void>> pauseStreamProcessingOnAllPartitions() {
     LOG.info("Pausing StreamProcessor on all partitions.");
-    partitions.forEach(partition -> partition.pauseProcessing());
+    return partitions.stream()
+        .map(partition -> partition.pauseProcessing())
+        .collect(Collectors.toList());
   }
 
   private void unpauseStreamProcessingOnAllPartitions() {

@@ -797,14 +797,26 @@ public final class ZeebePartition extends Actor
         });
   }
 
-  public void pauseProcessing() {
+  public ActorFuture<Void> pauseProcessing() {
+    final CompletableActorFuture completed = new CompletableActorFuture();
     actor.call(
         () -> {
           isPaused = true;
           if (streamProcessor != null) {
-            streamProcessor.pauseProcessing();
+            streamProcessor
+                .pauseProcessing()
+                .onComplete(
+                    (result, error) -> {
+                      if (error == null) {
+                        completed.complete(null);
+                      } else {
+                        completed.complete(error);
+                      }
+                    });
           }
+          return completed.completed(null);
         });
+    return completed;
   }
 
   public void resumeProcessing() {
