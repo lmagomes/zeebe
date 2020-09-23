@@ -87,7 +87,7 @@ public final class ExporterDirectorTest {
   @Test
   public void shouldUpdatePositionWhenInitialRecordsAreSkipped() {
     // given
-    final ControlledTestExporter tailingExporter = exporters.get(0);
+    final ControlledTestExporter tailingExporter = exporters.get(1);
     exporters.forEach(
         e ->
             e.onConfigure(withFilter(List.of(RecordType.COMMAND), List.of(ValueType.DEPLOYMENT)))
@@ -109,27 +109,27 @@ public final class ExporterDirectorTest {
   }
 
   @Test
-  public void shouldUpdatePositionOfUpToDateExportersOnSkipRecord() throws InterruptedException {
+  public void shouldUpdatePositionOfUpToDateExportersOnSkipRecord() {
     // given
-    final ControlledTestExporter tailingExporter = exporters.get(0);
-    final ControlledTestExporter filteringExporter = exporters.get(1);
-    final CountDownLatch isOpened = new CountDownLatch(1);
+    final ControlledTestExporter filteringExporter = exporters.get(0);
+    final ControlledTestExporter tailingExporter = exporters.get(1);
     tailingExporter
         .onConfigure(withFilter(List.of(RecordType.COMMAND), List.of(ValueType.DEPLOYMENT)))
         .shouldAutoUpdatePosition(false);
     filteringExporter
         .onConfigure(withFilter(List.of(RecordType.COMMAND), List.of(ValueType.DEPLOYMENT)))
-        .onOpen(c -> isOpened.countDown())
         .shouldAutoUpdatePosition(false);
 
     // when
     startExporterDirector(exporterDescriptors);
     final ExportersState state = rule.getExportersState();
-    isOpened.await(5, TimeUnit.SECONDS);
 
     // accepted by both
     final long firstRecordPosition =
         rule.writeCommand(DeploymentIntent.CREATE, new DeploymentRecord());
+    Awaitility.await("filteringExporter has exported the first record")
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() -> assertThat(filteringExporter.getExportedRecords()).hasSize(1));
     filteringExporter.getController().updateLastExportedRecordPosition(firstRecordPosition);
     // skipped entirely
     final long skippedRecordPosition =
@@ -141,14 +141,14 @@ public final class ExporterDirectorTest {
     Awaitility.await("director has read all records until now")
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(tailingExporter.getExportedRecords()).hasSize(2));
-    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(-1L);
-    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(-1L);
   }
 
   @Test
   public void shouldUpdateIfSkippingInitialRecordForSingleExporter() {
-    final ControlledTestExporter tailingExporter = exporters.get(0);
-    final ControlledTestExporter filteringExporter = exporters.get(1);
+    final ControlledTestExporter filteringExporter = exporters.get(0);
+    final ControlledTestExporter tailingExporter = exporters.get(1);
     tailingExporter
         .onConfigure(
             withFilter(
@@ -172,15 +172,14 @@ public final class ExporterDirectorTest {
     Awaitility.await("director has read all records until now")
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(tailingExporter.getExportedRecords()).hasSize(2));
-    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(-1L);
-    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(-1L);
   }
 
   @Test
   public void shouldUpdateIfRecordSkipsSingleUpToDateExporter() throws InterruptedException {
-    final ControlledTestExporter tailingExporter = exporters.get(0);
-    final ControlledTestExporter filteringExporter = exporters.get(1);
-    final CountDownLatch isOpened = new CountDownLatch(1);
+    final ControlledTestExporter filteringExporter = exporters.get(0);
+    final ControlledTestExporter tailingExporter = exporters.get(1);
     tailingExporter
         .onConfigure(
             withFilter(
@@ -188,17 +187,18 @@ public final class ExporterDirectorTest {
         .shouldAutoUpdatePosition(false);
     filteringExporter
         .onConfigure(withFilter(List.of(RecordType.COMMAND), List.of(ValueType.DEPLOYMENT)))
-        .onOpen(c -> isOpened.countDown())
         .shouldAutoUpdatePosition(false);
 
     // when
     startExporterDirector(exporterDescriptors);
     final ExportersState state = rule.getExportersState();
-    isOpened.await(5, TimeUnit.SECONDS);
 
     // accepted by both
     final long firstRecordPosition =
         rule.writeCommand(DeploymentIntent.CREATE, new DeploymentRecord());
+    Awaitility.await("filteringExporter has exported the first record")
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() -> assertThat(filteringExporter.getExportedRecords()).hasSize(1));
     filteringExporter.getController().updateLastExportedRecordPosition(firstRecordPosition);
     // skipped only by filteringExporter
     final long skippedRecordPosition =
@@ -208,8 +208,8 @@ public final class ExporterDirectorTest {
     Awaitility.await("director has read all records until now")
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(tailingExporter.getExportedRecords()).hasSize(2));
-    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(-1L);
-    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_1)).isEqualTo(skippedRecordPosition);
+    assertThat(state.getPosition(EXPORTER_ID_2)).isEqualTo(-1L);
   }
 
   @Test
